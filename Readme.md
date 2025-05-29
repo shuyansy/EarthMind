@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-    <img src="./assets/fig1_1.png" width="500">
+    <img src="./asset/pipeline.png" width="900">
 </p>
 
 
@@ -44,134 +44,159 @@ pip install -r requirements.txt
     <summary>Example Code</summary>
     
 ```python
-from videoxl.model.builder import load_pretrained_model
-from videoxl.mm_utils import tokenizer_image_token, process_images,transform_input_id
-from videoxl.constants import IMAGE_TOKEN_INDEX,TOKEN_PERFRAME 
+import argparse
+import os
+
 from PIL import Image
-from decord import VideoReader, cpu
-import torch
-import numpy as np
-# fix seed
-torch.manual_seed(0)
+from transformers import AutoModelForCausalLM, AutoTokenizer
+
+import cv2
+try:
+    from mmengine.visualization import Visualizer
+except ImportError:
+    Visualizer = None
+    print("Warning: mmengine is not installed, visualization is disabled.")
 
 
-model_path = "assets/videoxl_checkpoint-15000"
-video_path="assets/ad2_watch_15min.mp4"
+def parse_args():
+    parser = argparse.ArgumentParser(description='Video Reasoning Segmentation')
+    parser.add_argument('--image_folder', default="demo_images", help='Path to image file')
+    parser.add_argument('--model_path', default="/scqian/EarthMind-4B")
+    parser.add_argument('--work-dir', default="result", help='The dir to save results.')
+    parser.add_argument('--text', type=str, default="<image>Please segment the left chimney.")
+    parser.add_argument('--select', type=int, default=-1)
+    args = parser.parse_args()
+    return args
 
-max_frames_num =900 
-gen_kwargs = {"do_sample": True, "temperature": 1, "top_p": None, "num_beams": 1, "use_cache": True, "max_new_tokens": 1024}
-tokenizer, model, image_processor, _ = load_pretrained_model(model_path, None, "llava_qwen", device_map="cuda:0")
 
-model.config.beacon_ratio=[8]   # you can delete this line to realize random compression of {2,4,8} ratio
+def visualize(pred_mask, image_path, work_dir):
+    visualizer = Visualizer()
+    img = cv2.imread(image_path)
+    visualizer.set_image(img)
+    visualizer.draw_binary_masks(pred_mask, colors='g', alphas=0.4)
+    visual_result = visualizer.get_image()
+
+    output_path = os.path.join(work_dir, os.path.basename(image_path))
+    cv2.imwrite(output_path, visual_result)
+
+if __name__ == "__main__":
+    cfg = parse_args()
+    model_path = cfg.model_path
+    model = AutoModelForCausalLM.from_pretrained(
+        model_path,
+        torch_dtype="auto",
+        device_map="cuda:0",
+        trust_remote_code=True
+    )
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_path,
+        trust_remote_code=True
+    )
+
+    image_files = []
+    image_paths = []
+    image_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff"}
+    for filename in sorted(list(os.listdir(cfg.image_folder))):
+        if os.path.splitext(filename)[1].lower() in image_extensions:
+            image_files.append(filename)
+            image_paths.append(os.path.join(cfg.image_folder, filename))
+
+    vid_frames = []
+    for img_path in image_paths:
+        img = Image.open(img_path).convert('RGB')
+        vid_frames.append(img)
 
 
-#video input
-prompt = "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>user\n<image>\nDoes this video contain any inserted advertisement? If yes, which is the content of the ad?<|im_end|>\n<|im_start|>assistant\n"
-input_ids = tokenizer_image_token(prompt, tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).to(model.device)
-vr = VideoReader(video_path, ctx=cpu(0))
-total_frame_num = len(vr)
-uniform_sampled_frames = np.linspace(0, total_frame_num - 1, max_frames_num, dtype=int)
-frame_idx = uniform_sampled_frames.tolist()
-frames = vr.get_batch(frame_idx).asnumpy()
-video_tensor = image_processor.preprocess(frames, return_tensors="pt")["pixel_values"].to(model.device, dtype=torch.float16)
+    if cfg.select > 0:
+        img_frame = vid_frames[cfg.select - 1]
 
-beacon_skip_first = (input_ids == IMAGE_TOKEN_INDEX).nonzero(as_tuple=True)[1].item()
-num_tokens=TOKEN_PERFRAME *max_frames_num
-beacon_skip_last = beacon_skip_first  + num_tokens
+        print(f"Selected frame {cfg.select}")
+        print(f"The input is:\n{cfg.text}")
+        result = model.predict_forward(
+            image=img_frame,
+            text=cfg.text,
+            tokenizer=tokenizer,
+        )
+    else:
+        print("##########",vid_frames[0])
+        print(f"The input is:\n{cfg.text}")
+        result = model.predict_forward(
+            video=vid_frames,
+            text=cfg.text,
+            tokenizer=tokenizer,
+        )
 
-with torch.inference_mode():
-    output_ids = model.generate(input_ids, images=[video_tensor],  modalities=["video"],beacon_skip_first=beacon_skip_first,beacon_skip_last=beacon_skip_last, **gen_kwargs)
+    prediction = result['prediction']
+    print(f"The output is:\n{prediction}")
 
-if IMAGE_TOKEN_INDEX in input_ids:
-    transform_input_ids=transform_input_id(input_ids,num_tokens,model.config.vocab_size-1)
-
-output_ids=output_ids[:,transform_input_ids.shape[1]:]
-outputs = tokenizer.batch_decode(output_ids, skip_special_tokens=True)[0].strip()
-print(outputs)
+    if '[SEG]' in prediction and Visualizer is not None:
+        _seg_idx = 0
+        pred_masks = result['prediction_masks'][_seg_idx]
+        for frame_idx in range(len(vid_frames)):
+            pred_mask = pred_masks[frame_idx]
+            if cfg.work_dir:
+                os.makedirs(cfg.work_dir, exist_ok=True)
+                visualize(pred_mask, image_paths[frame_idx], cfg.work_dir)
+            else:
+                os.makedirs('./temp_visualize_results', exist_ok=True)
+                visualize(pred_mask, image_paths[frame_idx], './temp_visualize_results')
+    else:
+        pass
 ```
 </details>
 
-## Pre-training 
+
+## Training
+Please download the training data and pretrained weights into the data folder and pretrained folder, and then run the following code. We recommend using 8 A100 GPUs for training. 
 ```bash
-bash scripts/pretrain.sh
+ bash tools/dist.sh train projects/llava_sam2/configs/earthmind_4b_sft.py 8
 ```
 
-## Fine-tuning
-You can only utilize single image training data to efficiently train 
+After training, please run the following script to convert models to hf format:
 ```bash
-bash scripts/finetune_i.sh
-```
-or use single image/multi-image/video data to get better performance
-```bash
-bash scripts/finetune_v.sh
+export PYTHONPATH="./:$PYTHONPATH"
+python projects/llava_sam2/hf/convert_to_hf.py projects/llava_sam2/configs/earthmind_4b_sft.py --pth-model work_dirs/earthmind_4b_sft/iter_252380.pth --save-path your_model_path
 ```
 
-## Long Video Benchmark Evaluation
-For **MLVU**, **Video-MME**, **LongVideoBench** evaluation, please use  [`lmms-eval`](https://github.com/EvolvingLMMs-Lab/lmms-eval) After installing `lmms-eval` and videoxl, you can use the following script to evaluate.
-
-First, put the [`video_xl.py`](https://github.com/VectorSpaceLab/Video-XL/blob/main/eval/videoxl.py) in lmms-eval/lmms_eval/models. Then add "video_xl" in lmms-eval/lmms_eval/models/__init__.py. Lastly, run the following code.
-
+## Evaluation
+For image-level evaluation (scene classification, VQA and captioning), you can run 
 ```bash
-accelerate launch --num_processes 8 --main_process_port 12345 -m lmms_eval \
-    --model videoxl \
-    --model_args pretrained=videoxl_checkpoint_15000,conv_template=qwen_1_5,model_name=llava_qwen,max_frames_num=128,video_decode_backend=decord\
-    --tasks videomme \
-    --batch_size 1 \
-    --log_samples \
-    --log_samples_suffix videoxl \
-    --output_path ./logs/
+bash scripts_eval/image_task_eval.sh
 ```
-<details>
-<summary>Expand to see the performance on Video-MME and MLVU</summary>
-<IMG src="./assets/videomme.png"/>
-</details>
-
-For **VNBench** evaluation, download [VNBench](https://github.com/joez17/VideoNIAH) and use the following script
+For region-level evaluation (region captioning), you can run 
 ```bash
-bash eval/eval_vnbench.sh
+bash region_task.sh
 ```
-<details>
-<summary>Expand to see the performance on VNbench and LongVideoBench</summary>
-<IMG src="./assets/vnbench.png"/>
-</details>
-
-
-## Needle-in-a-Haystack (NIAH) Evaluation  
-
-We provide the NIAH evaluation code in the `./NIAH` folder.  
-
-### Running the Evaluation  
-To execute the evaluation, simply run:  
+For pixel-level evaluation (segmentation), you can run 
 ```bash
-bash ./NIAH/scripts/eval.sh
-```  
+bash pixel_task_eval.sh
+```
+For multispectral data evaluation, you can run 
+```bash
+bash multi_spectrum.sh
+```
+For EarthMind-Bench evaluation, you can run 
+```bash
+bash earthmind-bench.sh
+```
 
-### Data and Setup  
-- The QA pairs and needle images required for the evaluation are available in the `./NIAH/datas` folder.  
-- Due to the large size of the haystack video, we are unable to upload it. You can use any documentary or movie as the haystack video.  
-- Specify the path to your chosen haystack video in the `"haystack_path"` parameter within `eval.sh`.
+
 
 
 ## Training Data
-Please refer to [train_samples](./assets/train_example.json) so you can finetune with your own image or video data.
-We have realsed our trainiing data in [link](https://huggingface.co/datasets/sy1998/Video_XL_Training/tree/main).
+We have released our training data in [link](https://huggingface.co/datasets/sy1998/EarthMind-data).
 
 ## Citation
 If you find this repository useful, please consider giving a star :star: and citation
 
 ```
-@article{shu2024video,
-  title={Video-XL: Extra-Long Vision Language Model for Hour-Scale Video Understanding},
-  author={Shu, Yan and Zhang, Peitian and Liu, Zheng and Qin, Minghao and Zhou, Junjie and Huang, Tiejun and Zhao, Bo},
-  journal={arXiv preprint arXiv:2409.14485},
-  year={2024}
+
 }
 ```
 
 ## Acknowledgement
-- LongVA: the codebase we built upon. 
-- LMMs-Eval: the codebase we used for evaluation.
-- Activation Beacon: The compression methods we referring.
+- Sa2VA and GlaMM: the codebase we built upon. 
 
 ## License
 This project utilizes certain datasets and checkpoints that are subject to their respective original licenses. Users must comply with all terms and conditions of these original licenses.
