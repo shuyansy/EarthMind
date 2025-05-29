@@ -1,0 +1,1 @@
+python projects/llava_sam2/evaluation/infer_ms.py --model_path train_finalnewnew --num_gpus 4
