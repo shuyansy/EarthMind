@@ -191,7 +191,14 @@ We have released our training data in [link](https://huggingface.co/datasets/sy1
 If you find this repository useful, please consider giving a star :star: and citation
 
 ```
-
+@misc{shu2025earthmindmultigranularmultisensorearth,
+      title={EarthMind: Towards Multi-Granular and Multi-Sensor Earth Observation with Large Multimodal Models}, 
+      author={Yan Shu and Bin Ren and Zhitong Xiong and Danda Pani Paudel and Luc Van Gool and Begum Demir and Nicu Sebe and Paolo Rota},
+      year={2025},
+      eprint={2506.01667},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2506.01667}, 
 }
 ```
 
