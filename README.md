@@ -196,6 +196,22 @@ bash earthmind-bench.sh
 ## Training Data
 We have released our training data in [link](https://huggingface.co/datasets/sy1998/EarthMind-data).
 
+## EarthMind-Bench
+
+<p align="center">
+    <img src="./asset/earthmindbench.png" width="700">
+</p>
+
+✨ **Highlights**:
+
+(i) EarthMind-Bench supports multi-sensor (optical and SAR) joint evaluation. 
+
+(ii) EarthMind evaluates the perception and reasoning ability along with the multi-level abilities of LMMs.
+
+The data of EarthMind-Bench can be downloaded in [link](https://huggingface.co/datasets/sy1998/EarthMind-Bench).
+The evaluation methods can be seen in [MCQ](projects/llava_sam2/evaluation/evaluate_earthmindbench_mcq.py) and [OE](projects/llava_sam2/evaluation/infer_earthmindbench_oe.py).
+
+
 ## Citation
 If you find this repository useful, please consider giving a star :star: and citation
 
