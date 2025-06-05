@@ -32,7 +32,7 @@
 
 
 ## News
-- [2025/-/-] 🔥 The technical report of EarthMind is released.
+- [2025/06/01] 🔥 The technical report of EarthMind is released.
 - [2025/05/29] 🔥 EarthMind is released,  including data, model weight, training and evaluation code. 
 
 ## Model weights
