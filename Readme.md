@@ -5,6 +5,15 @@
 
 </p>
 
+#### [Yan Shu <sup>1</sup>](https://shuyansy.github.io/), [Bin Ren <sup>1,4,5</sup>](https://amazingren.github.io/), [Zhitong Xiong <sup>3</sup>](https://zhitong-xiong.github.io/), [Danda Pani Paudel <sup>5</sup>](https://people.ee.ethz.ch/~paudeld/), [Luc Van Gool <sup>5</sup>](https://scholar.google.com/citations?user=TwMib_QAAAAJ&hl=en), [Begüm Demir <sup>2</sup>](https://rsim.berlin/), [Nicu Sebe <sup>1</sup>](https://scholar.google.com/citations?user=stFCYOAAAAAJ&hl=en), and [Paolo Rota <sup>1</sup>](https://paolorota.eu/)
+
+<sup>1</sup> University of Trento, Italy, <br>
+<sup>2</sup> Technische Universität Berlin, Germany, <br>
+<sup>3</sup> Technical University of Munich, Germany, <br>
+<sup>4</sup> University of Pisa, Italy, <br>
+<sup>5</sup> INSAIT, Sofia University “St. Kliment Ohridski”, Bulgaria<br>
+
+
 <p align="center">
     <img src="./asset/pipeline.png" width="900">
 </p>
