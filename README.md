@@ -209,7 +209,7 @@ We have released our training data in [link](https://huggingface.co/datasets/sy1
 (ii) EarthMind evaluates the perception and reasoning ability along with the multi-level abilities of LMMs.
 
 The data of EarthMind-Bench can be downloaded in [link](https://huggingface.co/datasets/sy1998/EarthMind-Bench).
-The evaluation methods can be seen in [MCQ](projects/llava_sam2/evaluation/evaluate_earthmindbench_mcq.py) and [OE](projects/llava_sam2/evaluation/infer_earthmindbench_oe.py).
+The evaluation methods can be seen in [MCQ](projects/llava_sam2/evaluation/infer_earthmindbench_mcq.py) and [OE](projects/llava_sam2/evaluation/infer_earthmindbench_oe.py).
 
 
 ## Citation
