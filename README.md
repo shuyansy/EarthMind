@@ -218,14 +218,11 @@ The evaluation methods can be seen in [MCQ](projects/llava_sam2/evaluation/infer
 If you find this repository useful, please consider giving a star :star: and citation
 
 ```
-@misc{shu2025earthmindmultigranularmultisensorearth,
-      title={EarthMind: Towards Multi-Granular and Multi-Sensor Earth Observation with Large Multimodal Models}, 
-      author={Yan Shu and Bin Ren and Zhitong Xiong and Danda Pani Paudel and Luc Van Gool and Begum Demir and Nicu Sebe and Paolo Rota},
-      year={2025},
-      eprint={2506.01667},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2506.01667}, 
+@article{shu2025earthmind,
+  title={EarthMind: Towards Multi-Granular and Multi-Sensor Earth Observation with Large Multimodal Models},
+  author={Shu, Yan and Ren, Bin and Xiong, Zhitong and Paudel, Danda Pani and Van Gool, Luc and Demir, Begum and Sebe, Nicu and Rota, Paolo},
+  journal={arXiv preprint arXiv:2506.01667},
+  year={2025}
 }
 ```
 
